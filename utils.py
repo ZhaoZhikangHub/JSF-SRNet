@@ -16,14 +16,14 @@ from typing import Optional, List
 
 import torch.nn.functional as F
 from torch import nn, Tensor
-###################### 下面是添加的内容 ###########################################
+###################### Added content begins below ###########################################
 # import torch.nn as nn
 # import torch.nn.functional as F
 # from torch.autograd import Variable
 # from math import exp
 # from torchvision import models
 # from option import args
-######################## 上面是添加的内容 ########################################
+######################## Added content ends above ########################################
 class Transformer(nn.Module):
     def __init__(self, d_model=512, nhead=8, num_encoder_layers=1,
                  dim_feedforward=2048, dropout=0.1,
@@ -44,7 +44,7 @@ class Transformer(nn.Module):
         self.d_model = d_model
         self.nhead = nhead
 
-    def _reset_parameters(self): # 对参数进行初始化
+    def _reset_parameters(self): # Initialize parameters
         for p in self.parameters():
             if p.dim() > 1:
                 torch.nn.init.xavier_uniform_(p)
@@ -66,7 +66,7 @@ class LossNetwork_transformer(torch.nn.Module):
     def __init__(self, Transformer_model):
         super(LossNetwork_transformer,self).__init__()
         self.transformer_layers = Transformer_model
-        self.layer_name_mapping = {                         # 这里需要打印网络模型后重新编写 在调用之前打印 Transformer 网络结构；
+        self.layer_name_mapping = {                         # Print the Transformer architecture before calling this, then update the mapping accordingly.
             "encoder1":"encoder1",
             "encoder2":"encoder2",
             "encoder3":"encoder3",
@@ -80,16 +80,16 @@ class LossNetwork_transformer(torch.nn.Module):
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.fc = nn.Linear(512 * 12 * 12, 512)  # 假设特征图尺寸为 12x12
+        self.fc = nn.Linear(512 * 12 * 12, 512)  # Assume a feature map size of 12x12
 
     def output_features(self,x):
         output={}
-        x = self.pool(torch.relu(self.conv1(x)))  # 输出形状: [batch_size, 64, 96, 96]
-        x = self.pool(torch.relu(self.conv2(x)))  # 输出形状: [batch_size, 128, 48, 48]
-        x = self.pool(torch.relu(self.conv3(x)))  # 输出形状: [batch_size, 256, 24, 24]
-        x = self.pool(torch.relu(self.conv4(x)))  # 输出形状: [batch_size, 512, 12, 12]
-        x = x.view(x.size(0), -1)  # 展平: [batch_size, 512 * 12 * 12]
-        x = self.fc(x)  # 全连接层: [batch_size, 512]
+        x = self.pool(torch.relu(self.conv1(x)))  # Output shape: [batch_size, 64, 96, 96]
+        x = self.pool(torch.relu(self.conv2(x)))  # Output shape: [batch_size, 128, 48, 48]
+        x = self.pool(torch.relu(self.conv3(x)))  # Output shape: [batch_size, 256, 24, 24]
+        x = self.pool(torch.relu(self.conv4(x)))  # Output shape: [batch_size, 512, 12, 12]
+        x = x.view(x.size(0), -1)  # Flatten: [batch_size, 512 * 12 * 12]
+        x = self.fc(x)  # Fully connected layer: [batch_size, 512]
         
         for name,module in self.transformer_layers._modules.items():
             # print("The name is:",name)
@@ -112,7 +112,7 @@ class LossNetwork_transformer(torch.nn.Module):
         return sum(loss)  
 
 
-class Multiscale(nn.Module): # 待完成；
+class Multiscale(nn.Module): # TODO: Complete this implementation.
     def __init__(self,conv ='BSConvU',num_in_ch=3,num_out_ch=1):
         super(Multiscale, self).__init__()
         if conv == 'BSConvU':
@@ -147,7 +147,7 @@ class Multiscale(nn.Module): # 待完成；
         )
         self._reset_parameters()
 
-    def _reset_parameters(self): # 对参数进行初始化
+    def _reset_parameters(self): # Initialize parameters
         for p in self.parameters():
             if p.dim() > 1:
                 torch.nn.init.xavier_uniform_(p)
@@ -169,7 +169,7 @@ class Multiscale(nn.Module): # 待完成；
         print("The shape of final out:",out.shape)
         return out
 
-class LossNetwork_multiscale(torch.nn.Module): # 待完成；
+class LossNetwork_multiscale(torch.nn.Module): # TODO: Complete this implementation.
     def __init__(self, Multiscale_model):
         super(LossNetwork_multiscale, self).__init__()
         self.transformer_layers = Multiscale_model
@@ -198,7 +198,7 @@ class LossNetwork_multiscale(torch.nn.Module): # 待完成；
             # loss.append(F.mse_loss(sr_feature,hr_feature)*loss_weight)
         return sum(loss)
 
-class LossNetwork_vgg(torch.nn.Module):                                                  # 添加_感知损失
+class LossNetwork_vgg(torch.nn.Module):                                                  # Add perceptual loss
     def __init__(self, vgg_model):
         super(LossNetwork_vgg, self).__init__()
         self.vgg_layers = vgg_model
@@ -222,11 +222,11 @@ class LossNetwork_vgg(torch.nn.Module):                                         
  
     def forward(self, SR, HR):
         loss = []
-        SR_features = self.output_features(SR) # 这里输出的是SR的特征图
-        HR_features = self.output_features(HR)         # 这里输出的是HR的特征图
+        SR_features = self.output_features(SR) # Output the SR feature maps
+        HR_features = self.output_features(HR)         # Output the HR feature maps
         for iter,(sr_feature, hr_feature,loss_weight) in enumerate(zip(SR_features, HR_features,self.weight)):
             loss.append(F.mse_loss(sr_feature, hr_feature)*loss_weight)
-        return sum(loss)   # ,SR_features    这里不计算感知损失
+        return sum(loss)   # ,SR_features    Do not compute perceptual loss here
 
 class BSConvU_Loss(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1,

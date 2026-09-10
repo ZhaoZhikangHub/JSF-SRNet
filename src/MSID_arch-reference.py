@@ -248,9 +248,9 @@ class JSFSRNet(nn.Module):
             self.conv = BSConvU
         else:
             self.conv = nn.Conv2d
-        self.fea_conv = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs) # 源代码
-        # self.fea_conv = self.conv(num_in_ch * 3+1, num_feat, kernel_size=3, **kwargs) # 我修改的
-        # self.fea_conv = self.conv(12, num_feat, kernel_size=3, **kwargs) # 我修改的
+        self.fea_conv = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs) # Original code
+        # self.fea_conv = self.conv(num_in_ch * 3+1, num_feat, kernel_size=3, **kwargs) # Modified by the author
+        # self.fea_conv = self.conv(12, num_feat, kernel_size=3, **kwargs) # Modified by the author
         
 
         self.B1 = AFD(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
@@ -279,7 +279,7 @@ class JSFSRNet(nn.Module):
         else:
             raise NotImplementedError(("Check the Upsampeler. None or not support yet"))
 
-#########################替换1通道#####################################
+#########################Replace one channel#####################################
     def forward(self, input):
         # add_img = torch.cat([add_img,add_img,add_img],dim=1)
 

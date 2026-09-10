@@ -43,8 +43,8 @@ def main():
     
     sz_H, sz_W = 600, 600
     input = torch.FloatTensor(1, opt.n_colors, sz_H, sz_W).to(opt.device)
-    # input_add = torch.FloatTensor(1, opt.n_colors, sz_H, sz_W).to(opt.device)  # 我增加的 #################################
-    FLOPs, Params = profile(model, inputs=(input,), verbose=False)               # 我修改的 #################################
+    # input_add = torch.FloatTensor(1, opt.n_colors, sz_H, sz_W).to(opt.device)  # Added by the author #################################
+    FLOPs, Params = profile(model, inputs=(input,), verbose=False)               # Modified by the author #################################
     print('-------------Complexity-------------')
     print('\tParam = {:.3f}K\n\tFLOPs = {:.3f}G on {}'.format(Params * 1e-3, FLOPs * 1e-9, input.shape))
     torch.cuda.empty_cache()

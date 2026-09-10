@@ -7,7 +7,7 @@ from . import Upsamplers as Upsamplers
 import data.common as common
 from scipy import signal
 
-# 保留↓
+# Keep the following code
 class BSConvU(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1,
                  dilation=1, bias=True, padding_mode="zeros", with_ln=False, bn_kwargs=None):
@@ -106,7 +106,7 @@ def conv_block(in_nc, out_nc, kernel_size, stride=1, dilation=1, groups=1, bias=
     return sequential(p, c, n, a)
 
 
-# 保留↓ 定义了激活层
+# Keep the following activation layer definition
 def activation(act_type, inplace=True, neg_slope=0.05, n_prelu=1):
     act_type = act_type.lower()
     if act_type == 'relu':
@@ -124,9 +124,9 @@ def activation(act_type, inplace=True, neg_slope=0.05, n_prelu=1):
     return layer
 
 
-# 保留↓
+# Keep the following code
 def conv_layer(in_channels, out_channels, kernel_size, stride=1, dilation=1, groups=1):
-    padding = int((kernel_size - 1) / 2) * dilation  #  膨胀率，默认为 1，用于控制卷积核内部元素之间的间距。 计算了合适的填充量 padding，使得卷积操作后特征图大小不变。
+    padding = int((kernel_size - 1) / 2) * dilation  #  Dilation defaults to 1 and controls spacing between kernel elements. Compute padding to preserve the feature map size after convolution.
     return nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding=padding, bias=True, dilation=dilation,
                      groups=groups)
 
@@ -147,7 +147,7 @@ class SKA(nn.Module):  # scalable kernel attention (SKA) block
         #     self.activation,
         #     conv_layer(f, f, kernel_size=1),
         # )
-        # 上面是原来的设计，下面是我的设计
+        # The original design is above; the author's design is below
         self.LKA1 = nn.Conv2d(f,f,1)
         self.LKA1_1 = conv_layer(f, f, 3, groups=f)
         self.LKA2 = nn.Conv2d(f,f,1)
@@ -271,23 +271,23 @@ class SDB(nn.Module):
         out_fused = self.c5(self.cca(out)) + input
         return out_fused
     
-def cal_distance(pa,pb): # 用于函数freq_filt
+def cal_distance(pa,pb): # Used by freq_filt
     dis = torch.sqrt(torch.tensor((pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2))
     return dis
 
 # def butterworth_highpass_filter(cutoff, order, shape,FrequencyBand):
 #     """
-#       创建巴特沃斯高通滤波器
+#       Create a Butterworth high-pass filter
 #       Args:
-#         cutoff: 截止频率
-#         order: 巴特沃斯滤波器的阶数
-#         shape: 滤波器的形状
+#         cutoff: Cutoff frequency
+#         order: Butterworth filter order
+#         shape: Filter shape
 #       Returns:
-#         滤波器
+#         Filter
 #       """
-#     # 创建一个单位矩阵
+#     # Create an identity matrix
 #     h = torch.ones(shape, dtype=torch.complex64).to("cuda:0")
-#     # 计算滤波器的频率响应
+#     # Compute the filter frequency response
 #     if FrequencyBand == 'highpass':
 #         for i in range(shape[0]):
 #             for j in range(shape[1]):
@@ -313,14 +313,14 @@ def cal_distance(pa,pb): # 用于函数freq_filt
 
 def butterworth_highpass_filter(cutoff, order, shape, FrequencyBand):
     """
-    创建巴特沃斯滤波器，支持高通、低通和带通
+    Create a Butterworth filter supporting high-pass, low-pass, and band-pass modes
     Args:
-        cutoff: 截止频率。对于高通和低通是单个值，对于带通是元组(low_cut, high_cut)
-        order: 阶数
-        shape: 滤波器形状
-        FrequencyBand: 滤波类型，'highpass', 'lowpass', 'bandpass'
+        cutoff: Cutoff frequency: a scalar for high-pass and low-pass filters, or a (low_cut, high_cut) tuple for band-pass filters
+        order: Filter order
+        shape: Filter shape
+        FrequencyBand: Filter type: 'highpass', 'lowpass', 'bandpass'
     Returns:
-        滤波器
+        Filter
     """
     
 
@@ -336,21 +336,21 @@ def butterworth_highpass_filter(cutoff, order, shape, FrequencyBand):
             v = j - center_col
             d = np.sqrt(u**2 + v**2)
             if d == 0:
-                d = 1e-6  # 避免除以零
+                d = 1e-6  # Avoid division by zero
 
             if FrequencyBand == 'highpass':
-                # 高通滤波器：允许高于截止频率的信号通过
+                # High-pass filter: pass signals above the cutoff frequency
                 h_val = 1.0 / (1.0 + (cutoff_h / d)**(2 * order))
             elif FrequencyBand == 'lowpass':
-                # 低通滤波器：允许低于截止频率的信号通过
+                # Low-pass filter: pass signals below the cutoff frequency
                 h_val = 1.0 / (1.0 + (d / cutoff_l)**(2 * order))
             elif FrequencyBand == 'midpass':
-                # 带通滤波器：需要两个截止频率
+                # Band-pass filter: requires two cutoff frequencies
                 if isinstance(cutoff_m, (list, tuple)) and len(cutoff_m) == 2:
                     low_cut, high_cut = cutoff_m
-                    # 高通部分，低于low_cut被衰减
+                    # High-pass component: attenuate frequencies below low_cut
                     highpass = 1.0 / (1.0 + (low_cut / d)**(2 * order))
-                    # 低通部分，高于high_cut被衰减
+                    # Low-pass component: attenuate frequencies above high_cut
                     lowpass = 1.0 / (1.0 + (d / high_cut)**(2 * order))
                     h_val = highpass * lowpass
                 else:
@@ -366,11 +366,11 @@ def butterworth_highpass_filter(cutoff, order, shape, FrequencyBand):
 
 
 def freq_filt(FrequencyBand,data): 
-    # d,n =30, 1 # d 截止频率 n 滤波器阶数
-    # # data的数据类型：torch.Size([1, 3, 600, 600]) ；torch.Size([32, 3, 48, 48])
-    # # 下面的任务就是：对上面的数据格式进行频域滤波；
-    # data = data.squeeze(0)  # 将data的数据类型从 nchw 变为chw
-    # data = data.permute(1,2,0)  # 从chw变为hwc
+    # d,n =30, 1 # d: cutoff frequency; n: filter order
+    # # data shape: torch.Size([1, 3, 600, 600]) ;torch.Size([32, 3, 48, 48])
+    # # Apply frequency-domain filtering to data with the shapes above.
+    # data = data.squeeze(0)  # Change the data layout from NCHW to CHW
+    # data = data.permute(1,2,0)  # Change the layout from CHW to HWC
     # s1 = torch.log(torch.abs(data))
     # center_point = tuple(map(lambda x: (x-1)/2, s1.shape))
     # data_h,data_w,data_c = data.shape
@@ -404,24 +404,24 @@ class FDB(nn.Module):
         self.freq_band = freq_band
         self.b1_conv = conv(in_channels, in_channels, kernel_size=3,  **kwargs)
         # self.b1_conv = conv_block(in_channels, in_channels, 3, act_type=act_type)
-        self.b1_bn = norm(norm_type, in_channels)# 待确定
+        self.b1_bn = norm(norm_type, in_channels)# To be determined
         self.b1_activate = activation(act_type)
     
     def forward(self, x):
-            freq_data = freq_filt(self.freq_band,x)  # 低通滤波器
-            ### 上面使用scipy的设定值滤波器
-            ### 下面是自己写的巴特沃斯滤波器
+            freq_data = freq_filt(self.freq_band,x)  # Low-pass filter
+            ### Above: use the SciPy filter with preset values
+            ### Below: use the custom Butterworth filter
             # print("The type of freq_data:",type(freq_data))
             # freq_data = freq_data.to("cuda:0", dtype=torch.cuda.FloatTensor, non_blocking=True)
-            # print("走到这里了！")
+            # print("Reached this point!")
 
             FDB1 = self.b1_conv(freq_data.real)
             FDB2 = self.b1_bn(FDB1)
             FDB3 = self.b1_activate(FDB2)
-            output = torch.cat([FDB3,freq_data], dim=1) # 这里到底是用concat还是别的，仍然有待确定；
+            output = torch.cat([FDB3,freq_data], dim=1) # Whether to use concatenation or another operation here remains to be determined.
             
-            ### 上面使用scipy的设定值滤波器
-            ### 下面是自己写的巴特沃斯滤波器
+            ### Above: use the SciPy filter with preset values
+            ### Below: use the custom Butterworth filter
             return output
 
 
@@ -436,7 +436,7 @@ class JSFSRNet(nn.Module):
         else:
             self.conv = nn.Conv2d
         
-        self.fea_conv1 = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs) # 源代码
+        self.fea_conv1 = self.conv(num_in_ch * 4, num_feat, kernel_size=3, **kwargs) # Original code
 
         self.B1 = SDB(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
         self.B2 = SDB(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=2)
@@ -449,7 +449,7 @@ class JSFSRNet(nn.Module):
         self.B9 = SDB(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type, attentionScale=4)
         self.B10 = SDB(in_channels=num_feat, conv=self.conv, attn_shrink=attn_shrink, act_type=act_type,attentionScale=4)
 
-        self.c1 = nn.Conv2d(num_feat * num_block + num_feat*3 , num_feat, 1)  # num_feat * num_block 为空域空间通道数  3*2 为频域空间通道数
+        self.c1 = nn.Conv2d(num_feat * num_block + num_feat*3 , num_feat, 1)  # num_feat * num_block is the spatial-domain channel count; 3*2 is the frequency-domain channel count
         self.GELU = nn.GELU()
         self.c2 = self.conv(num_feat, num_feat, kernel_size=3, **kwargs)
 
@@ -464,18 +464,18 @@ class JSFSRNet(nn.Module):
         else:
             raise NotImplementedError(("Check the Upsampeler. None or not support yet"))
 
-        ##### 上面是空域路径所用模块
-        ##### 下面是频域路径所用模块
+        ##### Above: modules used by the spatial-domain branch
+        ##### Below: modules used by the frequency-domain branch
 
         self.F_low = FDB(in_channels=num_in_ch, conv=self.conv, freq_band = 'lowpass',act_type='silu',norm_type='batch')
         self.F_mid = FDB(in_channels=num_in_ch, conv=self.conv, freq_band = 'midpass',act_type='silu',norm_type='batch')
         self.F_high = FDB(in_channels=num_in_ch, conv=self.conv, freq_band = 'highpass',act_type='silu',norm_type='batch')
-        self.fea_conv2 = self.conv(num_in_ch*2, num_feat, kernel_size=3, **kwargs) # 源代码
+        self.fea_conv2 = self.conv(num_in_ch*2, num_feat, kernel_size=3, **kwargs) # Original code
 
-#########################替换1通道#####################################
+#########################Replace one channel#####################################
     def forward(self, input):
         # add_img = torch.cat([add_img,add_img,add_img],dim=1)
-        # 空间域通道路径
+        # Spatial-domain channel branch
         # print("The type of input:",type(input))
         # print("The shape of input:",input.shape)
 
@@ -491,24 +491,24 @@ class JSFSRNet(nn.Module):
         out_B8 = self.B8(out_B7)
         out_B9 = self.B9(out_B8)
         out_B10 = self.B10(out_B9)
-        # 加入频域通道路径 （注意input不是单通道的，处理的时候要进行单通道处理）
+        # Add the frequency-domain channel branch (input has multiple channels; process each channel separately)
         input_freq_pre = input  # torch.Size([1, 3, 150, 150]) ；torch.Size([32, 3, 48, 48])
-        input_freq = torch.fft.fft2(input_freq_pre) # torch.Size([1, 3, 600, 600]) ；torch.Size([32, 3, 48, 48])  得到输入input的傅里叶频谱图
-        input_freq_shift = torch.fft.fftshift(input_freq) # torch.Size([1, 3, 600, 600]) ；torch.Size([32, 3, 48, 48]) 对傅里叶频谱进行中心化
+        input_freq = torch.fft.fft2(input_freq_pre) # torch.Size([1, 3, 600, 600]) ;torch.Size([32, 3, 48, 48])  Compute the Fourier spectrum of input
+        input_freq_shift = torch.fft.fftshift(input_freq) # torch.Size([1, 3, 600, 600]) ;torch.Size([32, 3, 48, 48]) Center the Fourier spectrum
 
-        ## 进行频域处理
-        # 1、自适应权重频段选择器
-        out_F_L = self.F_low(input_freq_shift) # 进行学习与训练； 输入： torch.Size([1, 3, 600, 600]) ；torch.Size([32, 3, 48, 48])
+        ## Perform frequency-domain processing
+        # 1. Adaptive weighted frequency-band selector
+        out_F_L = self.F_low(input_freq_shift) # Learn and train; input:  torch.Size([1, 3, 600, 600]) ;torch.Size([32, 3, 48, 48])
         
         out_F_M = self.F_mid(input_freq_shift) #
         
-        out_F_H = self.F_high(input_freq_shift) # 进行学习与训练；
-        # 2、频域自学习处理单元
-        out_FL_process = self.fea_conv2(out_F_L.real) # 暂时只考虑一个RGB通道  
+        out_F_H = self.F_high(input_freq_shift) # Learn and train
+        # 2. Frequency-domain self-learning processing unit
+        out_FL_process = self.fea_conv2(out_F_L.real) # Currently consider only one RGB channel  
         out_FM_process = self.fea_conv2(out_F_M.real)
-        out_FH_process = self.fea_conv2(out_F_H.real) # 暂时只考虑一个RGB通道    
+        out_FH_process = self.fea_conv2(out_F_H.real) # Currently consider only one RGB channel    
 
-        # 3、将处理之后的结果返回为空域（先进行去中心化）；
+        # 3. Convert the processed results back to the spatial domain (undo spectrum centering first).
         out_F_L = torch.fft.ifft2(torch.fft.ifftshift(out_FL_process)) # torch.Size([1, 56, 150, 150])
         out_F_M = torch.fft.ifft2(torch.fft.ifftshift(out_FM_process))
         out_F_H = torch.fft.ifft2(torch.fft.ifftshift(out_FH_process)) # torch.Size([1, 56, 150, 150])

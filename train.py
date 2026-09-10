@@ -9,7 +9,7 @@ from tqdm import tqdm
 import data.common as common
 from option import args
 
-# 感知损失环境
+# Perceptual loss dependencies
 from torchvision.models import vgg19,vgg16
 import torch.nn.functional as F
 import cv2
@@ -20,26 +20,26 @@ import utils
 
 
 def train(training_dataloader, optimizer, model, epoch, writer, args):
-    # vgg_model = vgg19(pretrained=False).features[:].to(args.device)                     # 添加_感知损失
-    # vgg_model.load_state_dict(torch.load('/home/zzk/Mydoc/attachment//vgg19-dcbb9e9d.pth'),strict=False)          # 添加_感知损失
-    # vgg_model.eval()                                                                    # 添加_感知损失
-    # for param in vgg_model.parameters():                                                # 添加_感知损失（可能需要删除）
-    #     param.requires_grad = False                                                     # 添加_感知损失（可能需要删除）
-    # criterion1 = utils.LossNetwork_vgg(vgg_model).to(args.device)                       # 添加_感知损失
+    # vgg_model = vgg19(pretrained=False).features[:].to(args.device)                     # Add perceptual loss
+    # vgg_model.load_state_dict(torch.load('/home/zzk/Mydoc/attachment//vgg19-dcbb9e9d.pth'),strict=False)          # Add perceptual loss
+    # vgg_model.eval()                                                                    # Add perceptual loss
+    # for param in vgg_model.parameters():                                                # Add perceptual loss (may need to be removed)
+    #     param.requires_grad = False                                                     # Add perceptual loss (may need to be removed)
+    # criterion1 = utils.LossNetwork_vgg(vgg_model).to(args.device)                       # Add perceptual loss
     # criterion2 = nn.L1Loss(size_average=False).to(args.device)
 
-    trans_model_transformer = utils.Transformer().to(args.device)                         # 添加_Transformer损失 (pretrained=False)
-    trans_model_transformer.eval()                                                        # 添加_Transformer损失
-    for param in trans_model_transformer.parameters():                                    # 添加_Transformer损失
-        param.requires_grad = False                                           # 添加_Transformer损失
+    trans_model_transformer = utils.Transformer().to(args.device)                         # Add Transformer loss (pretrained=False)
+    trans_model_transformer.eval()                                                        # Add Transformer loss
+    for param in trans_model_transformer.parameters():                                    # Add Transformer loss
+        param.requires_grad = False                                           # Add Transformer loss
 
-    trans_model_multiscale = utils.Multiscale().to(args.device)                        # 添加_Multiscale损失 (pretrained=False)
-    trans_model_multiscale.eval()                                                      # 添加_Multiscale损失
-    for param in trans_model_multiscale.parameters():                                  # 添加_Multiscale损失
-        param.requires_grad = False                                         # 添加_Multiscale损失
+    trans_model_multiscale = utils.Multiscale().to(args.device)                        # Add multiscale loss (pretrained=False)
+    trans_model_multiscale.eval()                                                      # Add multiscale loss
+    for param in trans_model_multiscale.parameters():                                  # Add multiscale loss
+        param.requires_grad = False                                         # Add multiscale loss
 
-    criterion_transformer = utils.LossNetwork_transformer(trans_model_transformer).to(args.device)   # 添加_Transformer损失
-    criterion_multiscale = utils.LossNetwork_multiscale(trans_model_multiscale).to(args.device)  # 添加_Multiscale损失 
+    criterion_transformer = utils.LossNetwork_transformer(trans_model_transformer).to(args.device)   # Add Transformer loss
+    criterion_multiscale = utils.LossNetwork_multiscale(trans_model_multiscale).to(args.device)  # Add multiscale loss 
     criterion_l1 = nn.L1Loss(size_average=False).to(args.device)
     # criterion_l1 = nn.HuberLoss(delta=1).to(args.device)
     
@@ -53,8 +53,8 @@ def train(training_dataloader, optimizer, model, epoch, writer, args):
             LR_img = Variable(LR_img).to(args.device)
             HR_img = Variable(HR_img).to(args.device)
 
-            # SR_img = model(LR_img.float(),Y_img.float())  # 我修改的 #################################
-            SR_img = model(LR_img.float())  # 我修改的 #################################
+            # SR_img = model(LR_img.float(),Y_img.float())  # Modified by the author #################################
+            SR_img = model(LR_img.float())  # Modified by the author #################################
 
             # loss1 = criterion1(SR_img, HR_img)
             # loss2 = criterion2(SR_img, HR_img)
@@ -64,9 +64,9 @@ def train(training_dataloader, optimizer, model, epoch, writer, args):
             loss2 = criterion_multiscale(SR_img, HR_img)*1e8
             loss3 = criterion_l1(SR_img, HR_img)
             loss = loss1+loss2+loss3 # 
-            # print("注意：The loss1 is",loss1)
-            # print("注意：The loss2 is",loss2)
-            # print("注意：The loss3 is",loss3)
+            # print("Note: The loss1 is",loss1)
+            # print("Note: The loss2 is",loss2)
+            # print("Note: The loss3 is",loss3)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
@@ -107,15 +107,15 @@ def test(source_path, result_path, model, args, f_csv=None):
             for idx_img in range(val_length):
                 img_name = filename[idx_img]
                 HR_img = imageio.imread(os.path.join(source_path, img_name))
-                # print("这是“imageio”的图像读入形状：",HR_img.shape)
+                # print("Image shape loaded by imageio: ",HR_img.shape)
                 img_name, ext = os.path.splitext(img_name)
                 source_path_LQ = source_path.split('HR')[0] + 'LR_bicubic/X{}'.format(args.scale)
-                LR_img = imageio.imread(os.path.join(source_path_LQ, img_name + '.jpg'))  # 原来为 .png
+                LR_img = imageio.imread(os.path.join(source_path_LQ, img_name + '.jpg'))  # Previously .png
 
                 HR_img = common.set_channel(HR_img, args.n_colors)
                 
-                # Y_img = common.zzk_add(LR_img,'YYY')  # 我增加的 #################################
-                # Y_img = common.np2Tensor(Y_img, args.value_range) # 我增加的 #################################
+                # Y_img = common.zzk_add(LR_img,'YYY')  # Added by the author #################################
+                # Y_img = common.np2Tensor(Y_img, args.value_range) # Added by the author #################################
 
                 HR_img = common.np2Tensor(HR_img, args.value_range)
                 LR_img = common.set_channel(LR_img, args.n_colors)
@@ -123,12 +123,12 @@ def test(source_path, result_path, model, args, f_csv=None):
                 
                 # c, h, w = HR_img.shape
                 LR_img = Variable(LR_img[None]).to(args.device)
-                # Y_img = Variable(Y_img[None]).to(args.device) # 我增加的 #################################
+                # Y_img = Variable(Y_img[None]).to(args.device) # Added by the author #################################
                 H, W = HR_img.shape[1:]
                 HR_img = HR_img[:, :(H - H % args.scale), :(W - W % args.scale)]
 
                 start.record()
-                # SR_img = model(LR_img.float(),Y_img.float())# 我修改的 #################################
+                # SR_img = model(LR_img.float(),Y_img.float())# Modified by the author #################################
                 SR_img = model(LR_img.float())
                 end.record()
                 torch.cuda.synchronize()
@@ -156,7 +156,7 @@ def test(source_path, result_path, model, args, f_csv=None):
 
                 if args.save_img:
                     SR_img = utils.save_img(SR_img, 3, 255)
-                    SR_img.save(result_path + '/{}.jpg'.format(img_name))  # 原来为 .png
+                    SR_img.save(result_path + '/{}.jpg'.format(img_name))  # Previously .png
 
                 time.sleep(0.1)
                 pbar.update(1)
@@ -169,6 +169,6 @@ def test(source_path, result_path, model, args, f_csv=None):
                                  )
     torch.cuda.empty_cache()
     if f_csv:
-        f_csv.writerow(['Avg', Avg_PSNR / count, Avg_SSIM / count,Avg_SAM/count, Avg_VIF/count, Avg_BRI/count, Avg_Time / count]) # 在 avg_time之前 
+        f_csv.writerow(['Avg', Avg_PSNR / count, Avg_SSIM / count,Avg_SAM/count, Avg_VIF/count, Avg_BRI/count, Avg_Time / count]) # Before avg_time 
     return Avg_PSNR/count, Avg_SSIM/count, Avg_SAM/count, Avg_VIF/count,  Avg_BRI/count, Avg_Time/count   #
 
